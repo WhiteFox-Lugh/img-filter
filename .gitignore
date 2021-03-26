@@ -1,0 +1,7 @@
+.vscode/
+Pipfile
+Pipfile.lock
+*.png
+*.jpg
+*.jpeg
+.venv/
