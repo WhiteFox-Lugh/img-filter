@@ -50,6 +50,16 @@ def mosaic(origin_img: np.ndarray, size: int) -> np.ndarray:
     return res
 
 
+def gamma_correction(origin_img: np.ndarray, gamma: int) -> np.ndarray:
+    n = 256
+    lut = np.empty((1, n), dtype=np.uint8)
+    for i in range(n):
+        lut[0][i] = np.clip(
+            np.power(i / (n - 1.0), 1.0 / gamma) * (n - 1), 0, n-1)
+    res = cv2.LUT(origin_img, lut)
+    return res
+
+
 def quantize(origin_img: np.ndarray, color_num: int, pixel_size: int) -> np.ndarray:
     pil_img = opencv_to_pil(origin_img)
     quantized_img = pil_img.quantize(
@@ -121,6 +131,8 @@ def main(args):
         res_img = gray_scale(res_img)
     elif args.sepia:
         res_img = sepia_scale(res_img)
+    if args.gamma > 0:
+        res_img = gamma_correction(res_img, args.gamma)
     cv2.imwrite('output.png', res_img)
     t_end = time.time()
     elapsed_time = t_end - t_start
@@ -135,11 +147,13 @@ if __name__ == "__main__":
                         type=int, default=-1, choices=[2, 3, 4, 5, 6, 7, 8])
     parser.add_argument("--hq", "-q", help="pixelate", action="store_true")
     parser.add_argument(
-        "--color", "-c", help="number of color after filtered", type=int, default=4)
+        "--color", "-c", help="number of color after filtered", type=np.uint8, default=4)
     parser.add_argument("--gray", "-g", help="gray scale", action="store_true")
     parser.add_argument("--sepia", "-s", help="sepia color",
                         action="store_true")
     parser.add_argument("--dither", "-d", help="dithering",
                         action="store_true")
+    parser.add_argument(
+        "--gamma", "-gc", help="gamma correction", type=float, default=-1.0)
     args = parser.parse_args()
     main(args)
