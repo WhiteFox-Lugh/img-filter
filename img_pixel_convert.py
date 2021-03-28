@@ -7,6 +7,7 @@ from PIL import Image
 
 flag_pil_to_cv = False
 
+
 def read_image(file_path : str) -> np.ndarray:
   return cv2.imread(file_path)
 
@@ -69,18 +70,31 @@ def pixelate_img(origin_img : np.ndarray, pixel_size : int) -> np.ndarray:
   return res
 
 
-def dither(origin_img : np.ndarray) -> np.ndarray:
+def dither(img : np.ndarray) -> np.ndarray:
   mod = 4
-  bayer_matrix = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
-  bayer_matrix *= 16
-  bayer_matrix += 8
-  blue, green, red = cv2.split(origin_img)
-  for i in range(origin_img.shape[0]):
-    for j in range(origin_img.shape[1]):
-      blue[i][j] = 0 if blue[i][j] < bayer_matrix[i % mod][j % mod] else blue[i][j]
-      green[i][j] = 0 if green[i][j] < bayer_matrix[i % mod][j % mod] else green[i][j]
-      red[i][j] = 0 if red[i][j] < bayer_matrix[i % mod][j % mod] else red[i][j]
-  res = cv2.merge((blue, green, red))
+  mat = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
+  mat *= 16
+  mat += 8
+  w = img.shape[1]
+  h = img.shape[0]
+  w_mesh = math.ceil(w / mod)
+  h_mesh = math.ceil(h / mod)
+  mat = np.tile(mat, (h_mesh, w_mesh))
+  mat_w_size = mat.shape[1]
+  mat_h_size = mat.shape[0]
+  if mat_w_size > img.shape[1]:
+    diff = mat_w_size - img.shape[1]
+    for i in range(diff):
+      mat = np.delete(mat, -1, 1)
+  if mat_h_size > img.shape[0]:
+    diff = mat_h_size - img.shape[0]
+    for i in range(diff):
+      mat = np.delete(mat, -1, 0)
+  blue, green, red = cv2.split(img)
+  d_blue = np.where(blue < mat, 0, blue)
+  d_green = np.where(green < mat, 0, green)
+  d_red = np.where(red < mat, 0, red)
+  res = cv2.merge((d_blue, d_green, d_red))
   return res
 
 
