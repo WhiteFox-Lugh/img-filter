@@ -69,12 +69,29 @@ def pixelate_img(origin_img : np.ndarray, pixel_size : int) -> np.ndarray:
   return res
 
 
+def dither(origin_img : np.ndarray) -> np.ndarray:
+  mod = 4
+  bayer_matrix = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
+  bayer_matrix *= 16
+  bayer_matrix += 8
+  blue, green, red = cv2.split(origin_img)
+  for i in range(origin_img.shape[0]):
+    for j in range(origin_img.shape[1]):
+      blue[i][j] = 0 if blue[i][j] < bayer_matrix[i % mod][j % mod] else blue[i][j]
+      green[i][j] = 0 if green[i][j] < bayer_matrix[i % mod][j % mod] else green[i][j]
+      red[i][j] = 0 if red[i][j] < bayer_matrix[i % mod][j % mod] else red[i][j]
+  res = cv2.merge((blue, green, red))
+  return res
+
+
 def main(args):
   t_start = time.time()
   res_img = read_image(args.file_path)
   if args.pixel >= 2:
     res_img = pixelate_img(res_img, args.pixel) if args.hq else mosaic(res_img, args.pixel)
     res_img = quantize(res_img, args.color, args.pixel)
+  if args.dither:
+    res_img = dither(res_img)
   if args.gray:
     res_img = gray_scale(res_img)
   elif args.sepia:
@@ -94,5 +111,6 @@ if __name__ == "__main__":
   parser.add_argument("--color", "-c", help="number of color after filtered", type=int, default=4)
   parser.add_argument("--gray", "-g", help="gray scale", action="store_true")
   parser.add_argument("--sepia", "-s", help="sepia color", action="store_true")
+  parser.add_argument("--dither", "-d", help="dithering", action="store_true")
   args = parser.parse_args()
   main(args)
